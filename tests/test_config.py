@@ -7,7 +7,6 @@ from pydantic import ValidationError
 from hoymiles_smiles.config import (
     AppConfig,
     DtuConfig,
-    MqttConfig,
     ModbusConfig,
     TimingConfig,
 )
@@ -35,27 +34,6 @@ def test_dtu_config_invalid_port():
     
     with pytest.raises(ValidationError):
         DtuConfig(name="TestDTU", host="192.168.1.100", port=70000)
-
-
-def test_mqtt_config_valid():
-    """Test valid MQTT configuration."""
-    config = MqttConfig(broker="localhost", port=1883, user="test", password="pass")
-    assert config.broker == "localhost"
-    assert config.port == 1883
-    assert config.user == "test"
-    assert config.password == "pass"
-
-
-def test_mqtt_config_with_tls():
-    """Test MQTT configuration with TLS."""
-    config = MqttConfig(
-        broker="localhost",
-        port=8883,
-        tls=True,
-        tls_insecure=False,
-    )
-    assert config.tls is True
-    assert config.tls_insecure is False
 
 
 def test_modbus_config_valid():
@@ -101,7 +79,6 @@ def test_timing_config_invalid_expire_after():
 def test_app_config_single_dtu():
     """Test app configuration with single DTU."""
     config = AppConfig(
-        mqtt_broker="localhost",
         dtu_host="192.168.1.100",
     )
     
@@ -113,11 +90,5 @@ def test_app_config_single_dtu():
 def test_app_config_missing_dtu():
     """Test app configuration without DTU."""
     with pytest.raises(ValidationError):
-        AppConfig(mqtt_broker="localhost")
-
-
-def test_app_config_missing_mqtt():
-    """Test app configuration without MQTT broker."""
-    with pytest.raises(ValidationError):
-        AppConfig(dtu_host="192.168.1.100")
+        AppConfig()
 

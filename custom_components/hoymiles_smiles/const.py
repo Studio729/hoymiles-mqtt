@@ -34,22 +34,6 @@ SENSOR_TYPES: Final = {
         "state_class": "total_increasing",
         "entity_category": None,
     },
-    "messages_published": {
-        "name": "MQTT Messages Published",
-        "icon": "mdi:message-arrow-right",
-        "unit": None,
-        "device_class": None,
-        "state_class": "total_increasing",
-        "entity_category": None,
-    },
-    "mqtt_errors": {
-        "name": "MQTT Errors",
-        "icon": "mdi:alert-circle-outline",
-        "unit": None,
-        "device_class": None,
-        "state_class": "total_increasing",
-        "entity_category": None,
-    },
     "dtu_query_count": {
         "name": "DTU Query Count",
         "icon": "mdi:counter",

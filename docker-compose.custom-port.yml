@@ -13,9 +13,7 @@ services:
     network_mode: host
     environment:
       # Required Settings
-      MQTT_BROKER: 192.168.1.31
       DTU_HOST: 192.168.1.194
-      MICROINVERTER_TYPE: 'HM'
       QUERY_PERIOD: 300
       
       # Web Server Configuration - Using Port 9090 instead of default 8080

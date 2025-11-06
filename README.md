@@ -5,7 +5,7 @@
 [![Build Status](https://github.com/wasilukm/hoymiles-smiles/actions/workflows/dev.yml/badge.svg)](https://github.com/wasilukm/hoymiles-smiles/actions/workflows/dev.yml)
 [![codecov](https://codecov.io/gh/wasilukm/hoymiles-smiles/branch/main/graphs/badge.svg)](https://codecov.io/github/wasilukm/hoymiles-smiles)
 
-**Send data from Hoymiles photovoltaic installation to Home Assistant through MQTT broker.**
+**Send data from Hoymiles photovoltaic installation to Home Assistant through WebSocket.**
 
 *Disclaimer: This is an independent project, not affiliated with Hoymiles. Any trademarks or product names mentioned are the property of their respective owners.*
 
@@ -17,7 +17,7 @@
 
 ## Overview
 
-The tool periodically communicates with Hoymiles DTU (Pro) through ModbusTCP and sends gathered data to MQTT broker. Data is published with topics compatible with Home Assistant's MQTT discovery, automatically creating devices and entities.
+The tool periodically communicates with Hoymiles DTU (Pro) through ModbusTCP and sends gathered data to WebSocket. Data is push via WebSocket discovery, automatically creating devices and entities.
 
 ![MQTT Devices](/docs/mqtt_devices.png)
 ![MQTT Entities](/docs/mqtt_entities.png)
@@ -153,7 +153,7 @@ python3 -m hoymiles_smiles \
 ## Prerequisites
 
 - **DTU**: Ethernet port connected to network, assigned IP address (reserved via DHCP)
-- **MQTT Broker**: Running instance (e.g., [Mosquitto](https://mosquitto.org/))
+- **WebSocket**: Running instance (e.g., [Mosquitto](https://mosquitto.org/))
 - **Home Assistant**: MQTT integration enabled ([docs](https://www.home-assistant.io/integrations/mqtt/))
 
 ---
@@ -174,7 +174,7 @@ Verify `HEALTH_PORT` matches in both environment variable and healthcheck comman
 
 ### No Data in Home Assistant
 1. Ensure inverters are online (daylight hours)
-2. Check MQTT broker is running
+2. Check WebSocket is running
 3. Verify container logs: `docker logs hoymiles_smiles`
 4. Test MQTT: `mosquitto_sub -h <broker> -t "homeassistant/#"`
 

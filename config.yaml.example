@@ -2,15 +2,6 @@
 # This file supports more advanced configurations like multiple DTUs
 # Place this file at ./config/config.yaml when using Docker
 
-# ===== MQTT Configuration =====
-mqtt_broker: mosquitto
-mqtt_port: 1883
-mqtt_user: null
-mqtt_password: null
-mqtt_tls: false
-mqtt_client_id: hoymiles-smiles
-mqtt_topic_prefix: homeassistant
-
 # ===== Multiple DTU Configuration =====
 # When using multiple DTUs, define them here instead of using DTU_HOST
 # dtu_configs:

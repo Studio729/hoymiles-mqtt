@@ -1,4 +1,4 @@
-"""Enhanced runners with multi-DTU support - Database only (no MQTT)."""
+"""Enhanced runners with multi-DTU support."""
 
 import logging
 import signal

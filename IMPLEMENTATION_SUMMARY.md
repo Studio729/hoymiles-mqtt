@@ -30,7 +30,7 @@ This document summarizes all enhancements implemented in version 0.12.0, represe
 
 ### ✅ 3. Persistent MQTT Connection
 **New Files:**
-- `hoymiles_smiles/mqtt_client.py` - Enhanced MQTT client
+- `hoymiles_smiles/mqtt_client.py` - Enhanced WebSocket client
 
 **Improvements:**
 - Replaced single-shot publishes with persistent connection
@@ -208,7 +208,7 @@ LOG_FILE=/data/hoymiles.log
 
 **Services:**
 - `hoymiles-smiles` - Main application
-- `mosquitto` - MQTT broker
+- `mosquitto` - WebSocket
 - `homeassistant` - Home Assistant (profile: with-ha)
 - `prometheus` - Metrics collection (profile: with-monitoring)
 - `grafana` - Metrics visualization (profile: with-monitoring)
@@ -296,7 +296,7 @@ hoymiles_smiles/
 ├── persistence.py               # Data persistence
 ├── health.py                    # Health monitoring
 ├── circuit_breaker.py           # Error recovery
-├── mqtt_client.py               # Enhanced MQTT client
+├── mqtt_client.py               # Enhanced WebSocket client
 ├── logging_config.py            # Structured logging
 ├── runners.py                   # Multi-DTU coordinator (rewritten)
 └── __main__.py                  # Main entry point (rewritten)
@@ -428,7 +428,7 @@ DRY_RUN=true docker-compose up hoymiles-smiles
 The implementation maintains backward compatibility with v0.11.0:
 - Same environment variables work
 - Single DTU configuration unchanged
-- MQTT topics unchanged
+- data pushs unchanged
 - Home Assistant discovery unchanged
 
 ### Optional New Features

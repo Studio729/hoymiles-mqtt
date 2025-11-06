@@ -8,7 +8,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .const import CONF_HOST, CONF_PORT, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL, DOMAIN
-from .coordinator import HoymilesMqttCoordinator
+from .coordinator import HoymilesSmilesCoordinator
 from .websocket_server import async_setup_websocket
 
 _LOGGER = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     port = entry.data[CONF_PORT]
     scan_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
 
-    coordinator = HoymilesMqttCoordinator(
+    coordinator = HoymilesSmilesCoordinator(
         hass=hass,
         host=host,
         port=port,
@@ -66,7 +66,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     if unload_ok:
-        coordinator: HoymilesMqttCoordinator = hass.data[DOMAIN].pop(entry.entry_id)
+        coordinator: HoymilesSmilesCoordinator = hass.data[DOMAIN].pop(entry.entry_id)
         # Cleanup coordinator resources (closes WebSocket if connected)
         await coordinator.async_shutdown()
 

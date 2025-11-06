@@ -12,7 +12,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
-from .coordinator import HoymilesMqttCoordinator
+from .coordinator import HoymilesSmilesCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -86,7 +86,7 @@ class HoymilesWebSocketView(HomeAssistantView):
 
         return ws
 
-    def _find_coordinator_by_token(self, token: str | None) -> HoymilesMqttCoordinator | None:
+    def _find_coordinator_by_token(self, token: str | None) -> HoymilesSmilesCoordinator | None:
         """Find coordinator by auth token.
         
         Args:
@@ -99,7 +99,7 @@ class HoymilesWebSocketView(HomeAssistantView):
             return None
 
         for entry_id, coordinator in self.hass.data[DOMAIN].items():
-            if isinstance(coordinator, HoymilesMqttCoordinator):
+            if isinstance(coordinator, HoymilesSmilesCoordinator):
                 if coordinator.get_ws_token() == token:
                     return coordinator
 
@@ -107,7 +107,7 @@ class HoymilesWebSocketView(HomeAssistantView):
 
     async def _handle_message(
         self,
-        coordinator: HoymilesMqttCoordinator,
+        coordinator: HoymilesSmilesCoordinator,
         message: str,
     ) -> None:
         """Handle incoming WebSocket message.

@@ -36,21 +36,6 @@ def parse_args() -> argparse.Namespace:
     # Configuration file
     parser.add('-c', '--config', required=False, is_config_file=True, help='Config file path (YAML)')
     
-    # MQTT Configuration
-    mqtt_group = parser.add_argument_group('MQTT Configuration')
-    mqtt_group.add('--mqtt-broker', required=False, env_var='MQTT_BROKER', help='MQTT broker address')
-    mqtt_group.add('--mqtt-port', type=int, default=1883, env_var='MQTT_PORT', help='MQTT broker port')
-    mqtt_group.add('--mqtt-user', env_var='MQTT_USER', help='MQTT username')
-    mqtt_group.add('--mqtt-password', env_var='MQTT_PASSWORD', help='MQTT password')
-    mqtt_group.add('--mqtt-password-file', env_var='MQTT_PASSWORD_FILE', help='Path to MQTT password file')
-    mqtt_group.add('--mqtt-tls', action='store_true', env_var='MQTT_TLS', help='Enable MQTT TLS')
-    mqtt_group.add('--mqtt-tls-insecure', action='store_true', env_var='MQTT_TLS_INSECURE',
-                   help='Allow insecure TLS (skip cert validation)')
-    mqtt_group.add('--mqtt-tls-ca-cert', env_var='MQTT_TLS_CA_CERT', help='Path to CA certificate for TLS')
-    mqtt_group.add('--mqtt-client-id', default='hoymiles-smiles', env_var='MQTT_CLIENT_ID', help='MQTT client ID')
-    mqtt_group.add('--mqtt-topic-prefix', default='homeassistant', env_var='MQTT_TOPIC_PREFIX',
-                   help='MQTT topic prefix')
-    
     # DTU Configuration
     dtu_group = parser.add_argument_group('DTU Configuration')
     dtu_group.add('--dtu-host', env_var='DTU_HOST', help='DTU hostname or IP (single DTU mode)')

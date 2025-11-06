@@ -4,8 +4,8 @@ This guide will help you upgrade from v0.11.0 to v0.12.0, which includes major e
 
 ## Breaking Changes
 
-### MQTT Client
-- The MQTT client now uses **persistent connections** instead of single-shot publishes
+### WebSocket client
+- The WebSocket client now uses **persistent connections** instead of single-shot publishes
 - This improves reliability but requires slightly more resources
 - Configuration is backwards compatible
 

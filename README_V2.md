@@ -12,7 +12,7 @@
 - ✅ **New Name**: "Hoymiles S-Miles" (S for Storage/SQL)
 
 ### Key Benefits
-1. **Simpler Setup**: No MQTT broker needed
+1. **Simpler Setup**: No WebSocket needed
 2. **Better Performance**: Direct database access with connection pooling
 3. **Complete History**: All inverter data, port readings, and metrics permanently stored
 4. **Scalability**: PostgreSQL handles larger datasets and concurrent access better

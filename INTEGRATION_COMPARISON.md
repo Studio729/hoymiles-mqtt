@@ -188,7 +188,7 @@ Device: Hoymiles MQTT Bridge
 5. `sensor.hoymiles_dtu_last_query` - Seconds since last query
 6. `sensor.hoymiles_dtu_query_count` - Total queries
 7. `sensor.hoymiles_dtu_error_count` - Total errors
-8. `sensor.hoymiles_smiles_messages_published` - MQTT messages
+8. `sensor.hoymiles_smiles_messages_push via WebSocket messages
 9. `sensor.hoymiles_smiles_errors` - MQTT errors
 10. `sensor.hoymiles_smiles_database_size` - Database size
 11. `sensor.hoymiles_smiles_cached_records` - Cached records
@@ -200,7 +200,7 @@ Device: Hoymiles MQTT Bridge
 
 **Sensors:**
 1. `sensor.hoymiles_smiles_bridge_uptime` - Uptime with start_time attribute
-2. `sensor.hoymiles_smiles_bridge_mqtt_messages_published` - MQTT messages
+2. `sensor.hoymiles_smiles_bridge_mqtt_messages_push via WebSocket messages
 3. `sensor.hoymiles_smiles_bridge_mqtt_errors` - MQTT errors
 4. `sensor.hoymiles_smiles_bridge_dtu_query_count` - Queries with status attribute
 5. `sensor.hoymiles_smiles_bridge_dtu_error_count` - Errors with last error attribute

@@ -98,7 +98,7 @@ This prevents cascading failures when DTU is temporarily unresponsive.
 1. DTU is powered on and connected
 2. Inverters are online (check during daylight)
 3. Bridge container is running: `docker ps`
-4. MQTT broker is accessible
+4. WebSocket is accessible
 5. Check bridge logs for errors: `docker logs hoymiles_smiles`
 
 ---
@@ -107,7 +107,7 @@ This prevents cascading failures when DTU is temporarily unresponsive.
 
 ### Messages Not Publishing
 **Check**:
-1. **MQTT broker is running**:
+1. **WebSocket is running**:
    ```bash
    docker ps | grep mosquitto
    ```
@@ -137,7 +137,7 @@ curl http://<HOST>:<HEALTH_PORT>/metrics
 ```
 
 Look for `mqtt_errors_total` - if increasing:
-1. Check MQTT broker logs
+1. Check WebSocket logs
 2. Verify network stability
 3. Check broker is not overloaded
 
@@ -233,7 +233,7 @@ Retry X/2 for /health after error
 **Error**:
 ```
 All retries failed for /health
-Cannot connect to MQTT broker
+Cannot connect to WebSocket
 Modbus Error: No response received
 ```
 
@@ -312,7 +312,7 @@ curl http://<HOST>:<HEALTH_PORT>/ready
 2. **Logs**: Last 100 lines with timestamps
 3. **Configuration**: Your `docker-compose.yml` (redact passwords)
 4. **Health status**: `curl http://<HOST>:<HEALTH_PORT>/health`
-5. **Network test**: Can you ping DTU and MQTT broker?
+5. **Network test**: Can you ping DTU and WebSocket?
 
 ### Report Issues
 Include:

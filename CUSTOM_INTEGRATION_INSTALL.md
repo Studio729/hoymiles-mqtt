@@ -137,7 +137,7 @@ After installation, you'll have these entities:
 | Entity ID | Name | Unit | Description |
 |-----------|------|------|-------------|
 | `sensor.hoymiles_smiles_bridge_uptime` | Uptime | s | Application uptime |
-| `sensor.hoymiles_smiles_bridge_mqtt_messages_published` | MQTT Messages Published | - | Total messages sent |
+| `sensor.hoymiles_smiles_bridge_mqtt_messages_push via WebSocket Messages Published | - | Total messages sent |
 | `sensor.hoymiles_smiles_bridge_mqtt_errors` | MQTT Errors | - | Total MQTT errors |
 | `sensor.hoymiles_smiles_bridge_dtu_query_count` | DTU Query Count | queries | Total DTU queries |
 | `sensor.hoymiles_smiles_bridge_dtu_error_count` | DTU Error Count | errors | Total DTU errors |

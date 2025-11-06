@@ -12,9 +12,9 @@ Hoymiles S-Miles v2.0 represents a major architectural upgrade from the previous
 - **Benefit**: Better scalability, concurrent access, and data integrity
 
 ### 2. MQTT Removal
-- **Old**: Bridge published data via MQTT, Home Assistant consumed via MQTT
+- **Old**: Bridge push via WebSocket
 - **New**: Bridge stores data in database, Home Assistant queries via REST API
-- **Benefit**: Simpler architecture, no MQTT broker needed, direct database access
+- **Benefit**: Simpler architecture, no WebSocket needed, direct database access
 
 ### 3. Data Persistence
 - **Old**: Some data treated as cache and periodically purged

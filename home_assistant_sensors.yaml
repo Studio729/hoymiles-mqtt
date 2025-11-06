@@ -1,4 +1,4 @@
-# Home Assistant Configuration for Hoymiles MQTT Health Monitoring
+# Home Assistant Configuration for Hoymiles S-Miles Health Monitoring
 # Compatible with Home Assistant 2024.x (Latest Standards)
 # Add this to your configuration.yaml or create a separate package
 
@@ -7,17 +7,17 @@ rest:
   - resource: "http://192.168.1.31:8090/health"
     scan_interval: 60  # Check every 60 seconds
     sensor:
-      - name: "Hoymiles MQTT Health Status"
+      - name: "Hoymiles S-Miles Health Status"
         unique_id: hoymiles_smiles_health_status
         value_template: "{{ value_json.healthy }}"
         json_attributes:
           - uptime_seconds
           - start_time
           - dtus
-          - mqtt
+          - smiles
         availability: "{{ value_json is defined }}"
       
-      - name: "Hoymiles MQTT Uptime"
+      - name: "Hoymiles S-Miles Uptime"
         unique_id: hoymiles_smiles_uptime
         value_template: "{{ value_json.uptime_seconds }}"
         unit_of_measurement: "s"
@@ -25,22 +25,22 @@ rest:
         state_class: total_increasing
         availability: "{{ value_json.uptime_seconds is defined }}"
       
-      - name: "Hoymiles MQTT Messages Published"
+      - name: "Hoymiles S-Miles Messages Published"
         unique_id: hoymiles_smiles_messages_published
-        value_template: "{{ value_json.mqtt.messages_published }}"
+        value_template: "{{ value_json.smiles.messages_published }}"
         state_class: total_increasing
-        availability: "{{ value_json.mqtt.messages_published is defined }}"
+        availability: "{{ value_json.smiles.messages_published is defined }}"
       
-      - name: "Hoymiles MQTT Errors"
+      - name: "Hoymiles S-Miles Errors"
         unique_id: hoymiles_smiles_errors
-        value_template: "{{ value_json.mqtt.errors }}"
+        value_template: "{{ value_json.smiles.errors }}"
         state_class: total_increasing
-        availability: "{{ value_json.mqtt.errors is defined }}"
+        availability: "{{ value_json.smiles.errors is defined }}"
 
   - resource: "http://192.168.1.31:8090/stats"
     scan_interval: 300  # Check every 5 minutes
     sensor:
-      - name: "Hoymiles MQTT Database Size"
+      - name: "Hoymiles S-Miles Database Size"
         unique_id: hoymiles_smiles_db_size
         value_template: "{{ (value_json.database_size_bytes / 1024 / 1024) | round(2) }}"
         unit_of_measurement: "MB"
@@ -48,7 +48,7 @@ rest:
         suggested_display_precision: 2
         availability: "{{ value_json.database_size_bytes is defined }}"
       
-      - name: "Hoymiles MQTT Cached Records"
+      - name: "Hoymiles S-Miles Cached Records"
         unique_id: hoymiles_smiles_cached_records
         value_template: "{{ value_json.total_records }}"
         state_class: measurement
@@ -58,7 +58,7 @@ rest:
 template:
   # Binary sensor for overall health
   - binary_sensor:
-      - name: "Hoymiles MQTT Healthy"
+      - name: "Hoymiles S-Miles Healthy"
         unique_id: hoymiles_smiles_healthy
         device_class: connectivity
         state: >-
@@ -130,7 +130,7 @@ template:
         availability: >-
           {{ state_attr('sensor.hoymiles_smiles_health_status', 'dtus') is not none }}
       
-      - name: "Hoymiles MQTT Uptime Formatted"
+      - name: "Hoymiles S-Miles Uptime Formatted"
         unique_id: hoymiles_smiles_uptime_formatted
         state: >-
           {% set uptime = states('sensor.hoymiles_smiles_uptime') | int(0) %}
@@ -154,10 +154,10 @@ template:
 
 # Automations (Modern HA 2024.x syntax)
 automation:
-  # Alert when Hoymiles MQTT goes unhealthy
+  # Alert when Hoymiles S-Miles goes unhealthy
   - id: hoymiles_smiles_unhealthy_alert
-    alias: "Hoymiles MQTT - Unhealthy Alert"
-    description: "Alert when Hoymiles MQTT application becomes unhealthy"
+    alias: "Hoymiles S-Miles - Unhealthy Alert"
+    description: "Alert when Hoymiles S-Miles application becomes unhealthy"
     mode: single
     trigger:
       - platform: state
@@ -169,15 +169,15 @@ automation:
     action:
       - action: persistent_notification.create
         data:
-          title: "⚠️ Hoymiles MQTT Unhealthy"
+          title: "⚠️ Hoymiles S-Miles Unhealthy"
           message: >-
-            Hoymiles MQTT application is unhealthy.
+            Hoymiles S-Miles application is unhealthy.
             Last DTU query: {{ states('sensor.hoymiles_dtu_last_query') }}s ago
             Error count: {{ states('sensor.hoymiles_dtu_error_count') }}
       # Add your notification service here (uncomment and customize)
       # - action: notify.mobile_app_your_phone
       #   data:
-      #     title: "Hoymiles MQTT Unhealthy"
+      #     title: "Hoymiles S-Miles Unhealthy"
       #     message: "Check your solar monitoring system"
       #     data:
       #       importance: high
@@ -186,7 +186,7 @@ automation:
 
   # Alert on high error rate
   - id: hoymiles_smiles_high_errors
-    alias: "Hoymiles MQTT - High Error Rate"
+    alias: "Hoymiles S-Miles - High Error Rate"
     description: "Alert when error count increases significantly"
     mode: single
     trigger:
@@ -199,15 +199,15 @@ automation:
     action:
       - action: persistent_notification.create
         data:
-          title: "⚠️ Hoymiles MQTT Errors"
+          title: "⚠️ Hoymiles S-Miles Errors"
           message: >-
-            Multiple errors detected in Hoymiles MQTT.
+            Multiple errors detected in Hoymiles S-Miles.
             Total errors: {{ states('sensor.hoymiles_dtu_error_count') }}
             Increase: {{ trigger.to_state.state | int(0) - trigger.from_state.state | int(0) }}
 
   # Notify when application restarts
   - id: hoymiles_smiles_restart_notify
-    alias: "Hoymiles MQTT - Restart Notification"
+    alias: "Hoymiles S-Miles - Restart Notification"
     description: "Notify when application restarts"
     mode: single
     trigger:
@@ -221,8 +221,8 @@ automation:
     action:
       - action: persistent_notification.create
         data:
-          title: "ℹ️ Hoymiles MQTT Restarted"
+          title: "ℹ️ Hoymiles S-Miles Restarted"
           message: >-
-            Hoymiles MQTT application has restarted.
+            Hoymiles S-Miles application has restarted.
             Previous uptime: {{ trigger.from_state.state }}s
             New start time: {{ state_attr('sensor.hoymiles_smiles_health_status', 'start_time') }}

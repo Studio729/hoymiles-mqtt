@@ -17,8 +17,6 @@ logger = logging.getLogger(__name__)
 QUERY_TOTAL = Counter('hoymiles_queries_total', 'Total number of DTU queries', ['dtu_name', 'status'])
 QUERY_DURATION = Histogram('hoymiles_query_duration_seconds', 'DTU query duration', ['dtu_name'])
 QUERY_ERRORS = Counter('hoymiles_query_errors_total', 'Total number of query errors', ['dtu_name', 'error_type'])
-MQTT_MESSAGES = Counter('hoymiles_smiles_messages_total', 'Total messages published', ['message_type'])
-MQTT_ERRORS = Counter('hoymiles_smiles_errors_total', 'Total errors', ['error_type'])
 DTU_AVAILABLE = Gauge('hoymiles_dtu_available', 'DTU availability (1=available, 0=unavailable)', ['dtu_name'])
 INVERTER_POWER = Gauge('hoymiles_inverter_power_watts', 'Current inverter power', ['serial_number', 'port'])
 INVERTER_TEMPERATURE = Gauge('hoymiles_inverter_temperature_celsius', 'Inverter temperature', ['serial_number'])
@@ -41,8 +39,6 @@ class HealthMetrics:
         self.last_error_time: Dict[str, float] = {}
         self.query_count: Dict[str, int] = {}
         self.error_count: Dict[str, int] = {}
-        self.mqtt_published_count = 0
-        self.mqtt_error_count = 0
         self.dtu_status: Dict[str, str] = {}
         self._lock = threading.Lock()
     
@@ -79,26 +75,6 @@ class HealthMetrics:
             QUERY_TOTAL.labels(dtu_name=dtu_name, status='error').inc()
             QUERY_ERRORS.labels(dtu_name=dtu_name, error_type=error_type).inc()
             DTU_AVAILABLE.labels(dtu_name=dtu_name).set(0)
-    
-    def record_mqtt_publish(self, message_type: str = 'state') -> None:
-        """Record MQTT message published.
-        
-        Args:
-            message_type: Type of message (state, config, etc.)
-        """
-        with self._lock:
-            self.mqtt_published_count += 1
-            MQTT_MESSAGES.labels(message_type=message_type).inc()
-    
-    def record_mqtt_error(self, error_type: str = 'unknown') -> None:
-        """Record MQTT error.
-        
-        Args:
-            error_type: Type of error
-        """
-        with self._lock:
-            self.mqtt_error_count += 1
-            MQTT_ERRORS.labels(error_type=error_type).inc()
     
     def update_inverter_metrics(self, serial_number: str, port: Optional[int], 
                                power: Optional[float], temperature: Optional[float],
@@ -187,8 +163,6 @@ class HealthMetrics:
             query_count = self.query_count.copy()
             error_count = self.error_count.copy()
             dtu_status = self.dtu_status.copy()
-            mqtt_published = self.mqtt_published_count
-            mqtt_errors = self.mqtt_error_count
         
         # Build response outside lock
         uptime = self.get_uptime()
@@ -215,10 +189,6 @@ class HealthMetrics:
             'uptime_seconds': int(uptime),
             'start_time': datetime.fromtimestamp(self.start_time).isoformat(),
             'dtus': dtu_statuses,
-            'mqtt': {
-                'messages_published': mqtt_published,
-                'errors': mqtt_errors,
-            },
         }
 
 

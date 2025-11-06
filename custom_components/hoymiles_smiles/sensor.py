@@ -30,21 +30,21 @@ from .const import (
     LINK_STATUS_MAP,
     ALARM_CODE_MAP,
 )
-from .coordinator import HoymilesMqttCoordinator
+from .coordinator import HoymilesSmilesCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
-class HoymilesMqttSensorEntityDescription(SensorEntityDescription):
+class HoymilesSmilesSensorEntityDescription(SensorEntityDescription):
     """Describe Hoymiles S-Miles sensor entity."""
 
-    value_fn: Callable[[HoymilesMqttCoordinator], StateType] = None
-    attributes_fn: Callable[[HoymilesMqttCoordinator], dict[str, Any]] = None
+    value_fn: Callable[[HoymilesSmilesCoordinator], StateType] = None
+    attributes_fn: Callable[[HoymilesSmilesCoordinator], dict[str, Any]] = None
 
 
-SENSOR_DESCRIPTIONS: tuple[HoymilesMqttSensorEntityDescription, ...] = (
-    HoymilesMqttSensorEntityDescription(
+SENSOR_DESCRIPTIONS: tuple[HoymilesSmilesSensorEntityDescription, ...] = (
+    HoymilesSmilesSensorEntityDescription(
         key="uptime",
         name="Uptime",
         icon="mdi:clock-outline",
@@ -64,29 +64,7 @@ SENSOR_DESCRIPTIONS: tuple[HoymilesMqttSensorEntityDescription, ...] = (
             ),
         },
     ),
-    HoymilesMqttSensorEntityDescription(
-        key="messages_published",
-        name="MQTT Messages Published",
-        icon="mdi:message-arrow-right",
-        state_class=SensorStateClass.TOTAL_INCREASING,
-        value_fn=lambda coordinator: (
-            coordinator.get_health_data().get("mqtt", {}).get("messages_published")
-            if coordinator.get_health_data()
-            else None
-        ),
-    ),
-    HoymilesMqttSensorEntityDescription(
-        key="mqtt_errors",
-        name="MQTT Errors",
-        icon="mdi:alert-circle-outline",
-        state_class=SensorStateClass.TOTAL_INCREASING,
-        value_fn=lambda coordinator: (
-            coordinator.get_health_data().get("mqtt", {}).get("errors")
-            if coordinator.get_health_data()
-            else None
-        ),
-    ),
-    HoymilesMqttSensorEntityDescription(
+    HoymilesSensorEntityDescription(
         key="dtu_query_count",
         name="DTU Query Count",
         icon="mdi:counter",
@@ -105,7 +83,7 @@ SENSOR_DESCRIPTIONS: tuple[HoymilesMqttSensorEntityDescription, ...] = (
             ),
         },
     ),
-    HoymilesMqttSensorEntityDescription(
+    HoymilesSmilesSensorEntityDescription(
         key="dtu_error_count",
         name="DTU Error Count",
         icon="mdi:alert-circle",
@@ -129,7 +107,7 @@ SENSOR_DESCRIPTIONS: tuple[HoymilesMqttSensorEntityDescription, ...] = (
             ),
         },
     ),
-    HoymilesMqttSensorEntityDescription(
+    HoymilesSmilesSensorEntityDescription(
         key="dtu_last_query",
         name="DTU Last Query",
         icon="mdi:clock-check-outline",
@@ -148,7 +126,7 @@ SENSOR_DESCRIPTIONS: tuple[HoymilesMqttSensorEntityDescription, ...] = (
             ),
         },
     ),
-    HoymilesMqttSensorEntityDescription(
+    HoymilesSmilesSensorEntityDescription(
         key="database_size",
         name="Database Size",
         icon="mdi:database",
@@ -162,7 +140,7 @@ SENSOR_DESCRIPTIONS: tuple[HoymilesMqttSensorEntityDescription, ...] = (
             else None
         ),
     ),
-    HoymilesMqttSensorEntityDescription(
+    HoymilesSmilesSensorEntityDescription(
         key="cached_records",
         name="Cached Records",
         icon="mdi:database-check",
@@ -184,11 +162,11 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Hoymiles S-Miles sensors from config entry."""
-    coordinator: HoymilesMqttCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: HoymilesSmilesCoordinator = hass.data[DOMAIN][entry.entry_id]
 
     # Create system-level sensors
     entities = [
-        HoymilesMqttSensor(coordinator, entry, description)
+        HoymilesSensor(coordinator, entry, description)
         for description in SENSOR_DESCRIPTIONS
     ]
 
@@ -279,16 +257,16 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class HoymilesMqttSensor(CoordinatorEntity[HoymilesMqttCoordinator], SensorEntity):
+class HoymilesSensor(CoordinatorEntity[HoymilesSmilesCoordinator], SensorEntity):
     """Representation of a Hoymiles S-Miles sensor."""
 
-    entity_description: HoymilesMqttSensorEntityDescription
+    entity_description: HoymilesSensorEntityDescription
 
     def __init__(
         self,
-        coordinator: HoymilesMqttCoordinator,
+        coordinator: HoymilesSmilesCoordinator,
         entry: ConfigEntry,
-        description: HoymilesMqttSensorEntityDescription,
+        description: HoymilesSensorEntityDescription,
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
@@ -350,12 +328,12 @@ class HoymilesMqttSensor(CoordinatorEntity[HoymilesMqttCoordinator], SensorEntit
         return self.coordinator.last_update_success and self.coordinator.is_available()
 
 
-class InverterSensor(CoordinatorEntity[HoymilesMqttCoordinator], SensorEntity):
+class InverterSensor(CoordinatorEntity[HoymilesSmilesCoordinator], SensorEntity):
     """Representation of a Hoymiles inverter-level sensor."""
 
     def __init__(
         self,
-        coordinator: HoymilesMqttCoordinator,
+        coordinator: HoymilesSmilesCoordinator,
         entry: ConfigEntry,
         serial_number: str,
         sensor_key: str,
@@ -506,12 +484,12 @@ class InverterSensor(CoordinatorEntity[HoymilesMqttCoordinator], SensorEntity):
         )
 
 
-class PortSensor(CoordinatorEntity[HoymilesMqttCoordinator], SensorEntity):
+class PortSensor(CoordinatorEntity[HoymilesSmilesCoordinator], SensorEntity):
     """Representation of a Hoymiles inverter port sensor."""
 
     def __init__(
         self,
-        coordinator: HoymilesMqttCoordinator,
+        coordinator: HoymilesSmilesCoordinator,
         entry: ConfigEntry,
         serial_number: str,
         port_number: int,
@@ -665,12 +643,12 @@ class PortSensor(CoordinatorEntity[HoymilesMqttCoordinator], SensorEntity):
         )
 
 
-class InverterAggregateSensor(CoordinatorEntity[HoymilesMqttCoordinator], SensorEntity):
+class InverterAggregateSensor(CoordinatorEntity[HoymilesSmilesCoordinator], SensorEntity):
     """Representation of a Hoymiles inverter aggregate sensor (sum of all ports)."""
 
     def __init__(
         self,
-        coordinator: HoymilesMqttCoordinator,
+        coordinator: HoymilesSmilesCoordinator,
         entry: ConfigEntry,
         serial_number: str,
         sensor_key: str,
@@ -787,12 +765,12 @@ class InverterAggregateSensor(CoordinatorEntity[HoymilesMqttCoordinator], Sensor
         )
 
 
-class DtuSensor(CoordinatorEntity[HoymilesMqttCoordinator], SensorEntity):
+class DtuSensor(CoordinatorEntity[HoymilesSmilesCoordinator], SensorEntity):
     """Representation of a DTU-level sensor."""
 
     def __init__(
         self,
-        coordinator: HoymilesMqttCoordinator,
+        coordinator: HoymilesSmilesCoordinator,
         entry: ConfigEntry,
         dtu_name: str,
         sensor_key: str,

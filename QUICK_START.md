@@ -15,7 +15,7 @@ services:
     network_mode: host
     environment:
       # Required
-      MQTT_BROKER: 192.168.1.31          # Your MQTT broker IP
+      MQTT_BROKER: 192.168.1.31          # Your WebSocket IP
       DTU_HOST: 192.168.1.191             # Your DTU IP
       
       # Optional but recommended
@@ -127,7 +127,7 @@ sensor:
 ### Essential
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `MQTT_BROKER` | MQTT broker address | `192.168.1.31` |
+| `MQTT_BROKER` | WebSocket address | `192.168.1.31` |
 | `DTU_HOST` | Hoymiles DTU address | `192.168.1.191` |
 
 ### Common Options
@@ -150,7 +150,7 @@ sensor:
 - [ ] No errors in logs: `docker logs hoymiles_smiles`
 - [ ] Health endpoint responds: `curl http://localhost:8090/health`
 - [ ] DTU queries working (check logs)
-- [ ] MQTT messages publishing (check MQTT broker)
+- [ ] MQTT messages publishing (check WebSocket)
 
 ### In Home Assistant
 - [ ] DTU device appears
@@ -193,7 +193,7 @@ mosquitto_sub -h 192.168.1.31 -t "homeassistant/#" -v
 - Verify health endpoint: `docker exec hoymiles_smiles curl -f http://localhost:8090/health`
 
 ### No data in Home Assistant
-- Verify MQTT broker is running
+- Verify WebSocket is running
 - Check inverters are online (daylight hours)
 - Check logs for DTU connection errors
 - Test MQTT: `mosquitto_sub -h <broker> -t "homeassistant/#"`

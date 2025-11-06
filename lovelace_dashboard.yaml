@@ -1,8 +1,8 @@
-# Hoymiles MQTT Health Dashboard
+# Hoymiles S-Miles Health Dashboard
 # Copy this into a new dashboard or add to existing one
 # Dashboard → Add Dashboard → Type: YAML
 
-title: Hoymiles MQTT Monitor
+title: Hoymiles S-Miles Monitor
 icon: mdi:solar-power
 views:
   - title: Overview
@@ -64,16 +64,16 @@ views:
           red: 420
         needle: true
 
-      # MQTT Statistics
+      # S-Miles Statistics
       - type: entities
-        title: 📡 MQTT Activity
+        title: 📡 S-Miles Activity
         entities:
           - entity: sensor.hoymiles_smiles_messages_published
             name: Messages Published
             icon: mdi:message-arrow-right
             secondary_info: last-changed
           - entity: sensor.hoymiles_smiles_errors
-            name: MQTT Errors
+            name: S-Miles Errors
             icon: mdi:message-alert
           - type: custom:mini-graph-card
             entities:
@@ -116,7 +116,7 @@ views:
 
       # Message Statistics
       - type: history-graph
-        title: MQTT Messages (24h)
+        title: S-Miles Messages (24h)
         hours_to_show: 24
         entities:
           - entity: sensor.hoymiles_smiles_messages_published
@@ -144,7 +144,7 @@ views:
                 name: Errors
           - type: custom:multiple-entity-row
             entity: sensor.hoymiles_smiles_messages_published
-            name: MQTT Messages
+            name: S-Miles Messages
             secondary_info: last-changed
             entities:
               - entity: sensor.hoymiles_smiles_errors
@@ -196,7 +196,7 @@ views:
           content: |
             ## ⚠️ Application Unhealthy
             
-            The Hoymiles MQTT application is reporting an unhealthy status.
+            The Hoymiles S-Miles application is reporting an unhealthy status.
             
             **Last Query:** {{ states('sensor.hoymiles_dtu_last_query') }}s ago
             **Error Count:** {{ states('sensor.hoymiles_dtu_error_count') }}
@@ -213,7 +213,7 @@ views:
             name: DTU Query Errors
             icon: mdi:alert-circle
           - entity: sensor.hoymiles_smiles_errors
-            name: MQTT Errors
+            name: S-Miles Errors
             icon: mdi:message-alert
           - type: divider
           - type: button
@@ -253,7 +253,7 @@ views:
           **Total Queries:** {{ states('sensor.hoymiles_dtu_query_count') }}
           **Errors:** {{ states('sensor.hoymiles_dtu_error_count') }}
           
-          ### MQTT Stats
+          ### S-Miles Stats
           
           **Messages Published:** {{ states('sensor.hoymiles_smiles_messages_published') }}
           **Errors:** {{ states('sensor.hoymiles_smiles_errors') }}
@@ -272,7 +272,7 @@ views:
             attribute: dtus
           - entity: sensor.hoymiles_smiles_health_status
             type: attribute
-            attribute: mqtt
+            attribute: smiles
           - entity: sensor.hoymiles_smiles_health_status
             type: attribute
             attribute: uptime_seconds

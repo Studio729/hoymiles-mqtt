@@ -86,7 +86,7 @@ docker-compose -f docker-compose.simple.yml up -d
 
 Includes:
 - Hoymiles MQTT Bridge
-- Mosquitto MQTT Broker
+- Mosquitto WebSocket
 - Home Assistant (optional profile)
 - Prometheus (optional profile)
 - Grafana (optional profile)
@@ -118,7 +118,7 @@ docker-compose --profile with-ha --profile with-monitoring up -d
 
 ### Required
 ```bash
-MQTT_BROKER=192.168.1.31      # MQTT broker IP/hostname
+MQTT_BROKER=192.168.1.31      # WebSocket IP/hostname
 DTU_HOST=192.168.1.194        # DTU IP address
 ```
 

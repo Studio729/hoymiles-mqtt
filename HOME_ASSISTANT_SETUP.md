@@ -126,7 +126,7 @@ After installation, you'll have these sensors:
 
 | Entity ID | Description | Updates |
 |-----------|-------------|---------|
-| `sensor.hoymiles_smiles_messages_published` | Total MQTT messages sent | 60s |
+| `sensor.hoymiles_smiles_messages_push via WebSocket messages sent | 60s |
 | `sensor.hoymiles_smiles_errors` | Total MQTT errors | 60s |
 
 ### DTU Monitoring

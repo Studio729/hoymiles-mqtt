@@ -17,7 +17,7 @@ from .const import DOMAIN, ENDPOINT_HEALTH, ENDPOINT_STATS, ENDPOINT_INVERTERS
 _LOGGER = logging.getLogger(__name__)
 
 
-class HoymilesMqttCoordinator(DataUpdateCoordinator[dict[str, Any]]):
+class HoymilesSmilesCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Coordinator to manage data fetching from Hoymiles S-Miles API."""
 
     def __init__(

@@ -12,20 +12,12 @@ services:
     image: hoymiles_smiles
     network_mode: host
     environment:
-      # ===== Required Settings (Your Original Config) =====
-      MQTT_BROKER: 192.168.1.31
+      # ===== Required Settings =====
       DTU_HOST: 192.168.1.194
-      MICROINVERTER_TYPE: 'HM'
       QUERY_PERIOD: 300
       
-      # ===== Optional Settings (New in v0.12.0) =====
+      # ===== Optional Settings =====
       # Uncomment and modify as needed
-      
-      # MQTT Options
-      # MQTT_PORT: 1883
-      # MQTT_USER: your_user
-      # MQTT_PASSWORD: your_password
-      # MQTT_TLS: false
       
       # DTU Options  
       # DTU_PORT: 502

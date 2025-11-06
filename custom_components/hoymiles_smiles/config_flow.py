@@ -32,7 +32,7 @@ _LOGGER = logging.getLogger(__name__)
 async def validate_connection(
     hass: HomeAssistant, host: str, port: int, max_retries: int = 3
 ) -> dict[str, Any]:
-    """Validate the connection to the Hoymiles MQTT health API with retry logic."""
+    """Validate the connection to the Hoymiles S-Miles health API with retry logic."""
     url = f"http://{host}:{port}{ENDPOINT_HEALTH}"
     last_error = None
     
@@ -48,12 +48,12 @@ async def validate_connection(
                                     "Successfully connected to %s after %d attempts",
                                     url, attempt + 1
                                 )
-                            return {"title": f"Hoymiles MQTT Bridge ({host})"}
+                            return {"title": f"Hoymiles S-Miles Bridge ({host})"}
                         elif response.status == 503:
                             # 503 is often transient - retry automatically
                             error_msg = (
                                 f"Health endpoint returned 503 (attempt {attempt + 1}/{max_retries}). "
-                                "Bridge may be busy with MQTT/database operations."
+                                "Bridge may be busy with database operations."
                             )
                             _LOGGER.warning(error_msg)
                             last_error = ConnectionError(
@@ -74,7 +74,7 @@ async def validate_connection(
                             raise ConnectionError(f"Health endpoint returned HTTP {response.status}")
         except aiohttp.ClientError as err:
             _LOGGER.error("Connection error to %s (attempt %d/%d): %s", url, attempt + 1, max_retries, err)
-            last_error = ConnectionError("Cannot connect to Hoymiles MQTT health API")
+            last_error = ConnectionError("Cannot connect to Hoymiles S-Miles health API")
             if attempt < max_retries - 1:
                 await asyncio.sleep(1)
                 continue
@@ -99,8 +99,8 @@ async def validate_connection(
     raise ConnectionError("Failed to validate connection after retries")
 
 
-class HoymilesMqttConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Hoymiles MQTT Bridge."""
+class HoymilesSmilesConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+    """Handle a config flow for Hoymiles S-Miles Bridge."""
 
     VERSION = 1
 
@@ -152,13 +152,13 @@ class HoymilesMqttConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
-    ) -> HoymilesMqttOptionsFlow:
+    ) -> HoymilesSmilesOptionsFlow:
         """Get the options flow for this handler."""
-        return HoymilesMqttOptionsFlow(config_entry)
+        return HoymilesSmilesOptionsFlow(config_entry)
 
 
-class HoymilesMqttOptionsFlow(config_entries.OptionsFlow):
-    """Handle options flow for Hoymiles MQTT Bridge."""
+class HoymilesSmilesOptionsFlow(config_entries.OptionsFlow):
+    """Handle options flow for Hoymiles S-Miles Bridge."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None

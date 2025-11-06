@@ -13,7 +13,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .coordinator import HoymilesMqttCoordinator
+from .coordinator import HoymilesSmilesCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,27 +23,27 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Hoymiles MQTT binary sensors from config entry."""
-    coordinator: HoymilesMqttCoordinator = hass.data[DOMAIN][entry.entry_id]
+    """Set up Hoymiles S-Miles binary sensors from config entry."""
+    coordinator: HoymilesSmilesCoordinator = hass.data[DOMAIN][entry.entry_id]
 
     entities = [
-        HoymilesMqttHealthBinarySensor(coordinator, entry),
+        HoymilesSmilesHealthBinarySensor(coordinator, entry),
     ]
 
     async_add_entities(entities)
 
 
-class HoymilesMqttHealthBinarySensor(
-    CoordinatorEntity[HoymilesMqttCoordinator], BinarySensorEntity
+class HoymilesSmilesHealthBinarySensor(
+    CoordinatorEntity[HoymilesSmilesCoordinator], BinarySensorEntity
 ):
     """Binary sensor representing overall health status."""
 
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
-    _attr_name = "Hoymiles MQTT Bridge"
+    _attr_name = "Hoymiles S-Miles Bridge"
 
     def __init__(
         self,
-        coordinator: HoymilesMqttCoordinator,
+        coordinator: HoymilesSmilesCoordinator,
         entry: ConfigEntry,
     ) -> None:
         """Initialize the binary sensor."""
@@ -51,9 +51,9 @@ class HoymilesMqttHealthBinarySensor(
         self._attr_unique_id = f"{entry.entry_id}_healthy"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, entry.entry_id)},
-            "name": "Hoymiles MQTT Bridge",
+            "name": "Hoymiles S-Miles Bridge",
             "manufacturer": "Hoymiles",
-            "model": "MQTT Bridge",
+            "model": "S-Miles Bridge",
             "sw_version": "1.1.7",
         }
         self._last_availability = None  # Track availability changes
@@ -71,7 +71,7 @@ class HoymilesMqttHealthBinarySensor(
             await asyncio.sleep(0.5)
             
             _LOGGER.info(
-                "[Initial State] Writing initial state for Hoymiles MQTT Bridge sensor: %s (available=%s)",
+                "[Initial State] Writing initial state for Hoymiles S-Miles Bridge sensor: %s (available=%s)",
                 "on" if self.is_on else "off",
                 self.available
             )
@@ -108,7 +108,7 @@ class HoymilesMqttHealthBinarySensor(
         # Log availability changes for debugging
         if hasattr(self, '_last_availability') and self._last_availability != is_available:
             _LOGGER.info(
-                "[Availability Change] Hoymiles MQTT Bridge sensor: %s → %s (last_update_success=%s, coordinator_available=%s)",
+                "[Availability Change] Hoymiles S-Miles Bridge sensor: %s → %s (last_update_success=%s, coordinator_available=%s)",
                 "available" if self._last_availability else "unavailable",
                 "available" if is_available else "unavailable",
                 self.coordinator.last_update_success,
@@ -139,12 +139,6 @@ class HoymilesMqttHealthBinarySensor(
                 "dtu_query_count": dtu_data.get("query_count"),
                 "dtu_error_count": dtu_data.get("error_count"),
             })
-
-        mqtt_data = health.get("mqtt", {})
-        attributes.update({
-            "mqtt_messages_published": mqtt_data.get("messages_published"),
-            "mqtt_errors": mqtt_data.get("errors"),
-        })
 
         return attributes
 

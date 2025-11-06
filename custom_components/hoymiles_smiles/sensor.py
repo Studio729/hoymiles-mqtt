@@ -64,7 +64,7 @@ SENSOR_DESCRIPTIONS: tuple[HoymilesSmilesSensorEntityDescription, ...] = (
             ),
         },
     ),
-    HoymilesSensorEntityDescription(
+    HoymilesSmilesSensorEntityDescription(
         key="dtu_query_count",
         name="DTU Query Count",
         icon="mdi:counter",
@@ -166,7 +166,7 @@ async def async_setup_entry(
 
     # Create system-level sensors
     entities = [
-        HoymilesSensor(coordinator, entry, description)
+        HoymilesSmilesSensor(coordinator, entry, description)
         for description in SENSOR_DESCRIPTIONS
     ]
 
@@ -257,16 +257,16 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class HoymilesSensor(CoordinatorEntity[HoymilesSmilesCoordinator], SensorEntity):
+class HoymilesSmilesSensor(CoordinatorEntity[HoymilesSmilesCoordinator], SensorEntity):
     """Representation of a Hoymiles S-Miles sensor."""
 
-    entity_description: HoymilesSensorEntityDescription
+    entity_description: HoymilesSmilesSensorEntityDescription
 
     def __init__(
         self,
         coordinator: HoymilesSmilesCoordinator,
         entry: ConfigEntry,
-        description: HoymilesSensorEntityDescription,
+        description: HoymilesSmilesSensorEntityDescription,
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)

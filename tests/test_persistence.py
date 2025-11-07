@@ -16,7 +16,7 @@ def test_persistence_initialization_disabled():
 def test_persistence_initialization_postgres():
     """Test persistence manager initialization with PostgreSQL."""
     # Mock the adapter to avoid needing real database
-    with patch('hoymiles_smiles.persistence.DatabaseAdapter') as mock_adapter:
+    with patch('hoymiles_smiles.db_adapter.DatabaseAdapter') as mock_adapter:
         # Create mock connection and cursor
         mock_conn = MagicMock()
         mock_cursor = MagicMock()
@@ -53,7 +53,7 @@ def test_persistence_initialization_postgres():
 def test_persistence_initialization_mysql():
     """Test persistence manager initialization with MySQL."""
     # Mock the adapter to avoid needing real database
-    with patch('hoymiles_smiles.persistence.DatabaseAdapter') as mock_adapter:
+    with patch('hoymiles_smiles.db_adapter.DatabaseAdapter') as mock_adapter:
         # Create mock connection and cursor
         mock_conn = MagicMock()
         mock_cursor = MagicMock()

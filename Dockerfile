@@ -9,6 +9,9 @@ RUN apk add --no-cache \
     libffi-dev \
     gcc \
     musl-dev \
+    postgresql-dev \
+    mariadb-dev \
+    mariadb-connector-c \
     && rm -rf /var/cache/apk/*
 
 WORKDIR /hoymiles-smiles

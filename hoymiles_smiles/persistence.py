@@ -1,4 +1,4 @@
-"""Data persistence layer using PostgreSQL for permanent storage."""
+"""Data persistence layer supporting PostgreSQL and MySQL/MariaDB."""
 
 import json
 import logging
@@ -8,9 +8,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-import psycopg2
-import psycopg2.extras
-from psycopg2 import pool
+from hoymiles_smiles.db_adapter import DatabaseAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -25,18 +23,26 @@ class DecimalEncoder(json.JSONEncoder):
 
 
 class PersistenceManager:
-    """Manages persistent storage of solar production data in PostgreSQL."""
+    """Manages persistent storage of solar production data in PostgreSQL or MySQL/MariaDB."""
 
     def __init__(self, enabled: bool = True, **db_config):
         """Initialize persistence manager.
         
         Args:
             enabled: Whether persistence is enabled
-            **db_config: Database configuration (host, port, database, user, password, etc.)
+            **db_config: Database configuration (host, port, database, user, password, type, etc.)
         """
         self.enabled = enabled
         self.db_config = db_config
-        self.connection_pool: Optional[pool.SimpleConnectionPool] = None
+        self.db_type = os.getenv('DB_TYPE', db_config.get('type', 'postgres')).lower()
+        self.connection_pool = None
+        
+        # Create database adapter
+        try:
+            self.adapter = DatabaseAdapter(self.db_type)
+        except (ImportError, ValueError) as e:
+            logger.error(f"Failed to initialize database adapter: {e}")
+            self.enabled = False
         
         if self.enabled:
             self._initialize_database()
@@ -58,14 +64,10 @@ class PersistenceManager:
             pool_size = int(os.getenv('DB_POOL_SIZE', 10))
             max_overflow = int(os.getenv('DB_MAX_OVERFLOW', 20))
             
-            # Create connection pool
-            self.connection_pool = pool.SimpleConnectionPool(
-                minconn=1,
-                maxconn=pool_size + max_overflow,
-                **config
-            )
+            # Create connection pool using adapter
+            self.connection_pool = self.adapter.create_pool(config, pool_size, max_overflow)
             
-            logger.info(f"Connected to PostgreSQL at {config['host']}:{config['port']}/{config['database']}")
+            logger.info(f"Connected to {self.db_type.upper()} at {config['host']}:{config['port']}/{config['database']}")
             
             # Create schema
             self._create_schema()
@@ -78,106 +80,30 @@ class PersistenceManager:
         """Get a connection from the pool."""
         if not self.connection_pool:
             raise Exception("Connection pool not initialized")
-        return self.connection_pool.getconn()
+        return self.adapter.get_connection(self.connection_pool)
     
     def _return_connection(self, conn):
         """Return a connection to the pool."""
         if self.connection_pool:
-            self.connection_pool.putconn(conn)
+            self.adapter.return_connection(self.connection_pool, conn)
     
     def _create_schema(self) -> None:
         """Create database schema with all necessary tables."""
         conn = None
         try:
             conn = self._get_connection()
-            cursor = conn.cursor()
+            cursor = self.adapter.get_cursor(conn)
             
-            # Inverters table - stores inverter information
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS inverters (
-                    serial_number TEXT PRIMARY KEY,
-                    dtu_name TEXT,
-                    first_seen TIMESTAMP NOT NULL DEFAULT NOW(),
-                    last_seen TIMESTAMP NOT NULL DEFAULT NOW(),
-                    inverter_type TEXT,
-                    metadata JSONB
-                )
-            ''')
+            # Get schema SQL for this database type
+            schema_sql = self.adapter.get_schema_sql()
             
-            # Inverter data table - stores all inverter readings (never purged)
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS inverter_data (
-                    id BIGSERIAL PRIMARY KEY,
-                    serial_number TEXT NOT NULL REFERENCES inverters(serial_number),
-                    timestamp TIMESTAMP NOT NULL DEFAULT NOW(),
-                    grid_voltage REAL,
-                    grid_frequency REAL,
-                    temperature REAL,
-                    operating_status INTEGER,
-                    alarm_code INTEGER,
-                    alarm_count INTEGER,
-                    link_status INTEGER,
-                    raw_data JSONB
-                )
-            ''')
+            # Create tables in order (respecting foreign keys)
+            table_order = ['inverters', 'inverter_data', 'port_data', 'production_cache', 'config_cache', 'system_metrics']
             
-            # Port/Panel data table - stores all port readings (never purged)
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS port_data (
-                    id BIGSERIAL PRIMARY KEY,
-                    serial_number TEXT NOT NULL REFERENCES inverters(serial_number),
-                    port_number INTEGER NOT NULL,
-                    timestamp TIMESTAMP NOT NULL DEFAULT NOW(),
-                    pv_voltage REAL,
-                    pv_current REAL,
-                    pv_power REAL,
-                    today_production INTEGER,
-                    total_production INTEGER,
-                    raw_data JSONB
-                )
-            ''')
-            
-            # Production cache table - for quick access to current values
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS production_cache (
-                    serial_number TEXT NOT NULL,
-                    port_number INTEGER NOT NULL,
-                    today_production INTEGER NOT NULL,
-                    total_production INTEGER NOT NULL,
-                    last_updated TIMESTAMP NOT NULL DEFAULT NOW(),
-                    PRIMARY KEY (serial_number, port_number),
-                    FOREIGN KEY (serial_number) REFERENCES inverters(serial_number)
-                )
-            ''')
-            
-            # Configuration cache table
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS config_cache (
-                    key TEXT PRIMARY KEY,
-                    value JSONB NOT NULL,
-                    last_updated TIMESTAMP NOT NULL DEFAULT NOW()
-                )
-            ''')
-            
-            # System metrics table - stores all metrics (never purged)
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS system_metrics (
-                    id BIGSERIAL PRIMARY KEY,
-                    timestamp TIMESTAMP NOT NULL DEFAULT NOW(),
-                    metric_name TEXT NOT NULL,
-                    metric_value REAL NOT NULL,
-                    tags JSONB
-                )
-            ''')
-            
-            # Create indices for better query performance
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_inverter_data_serial ON inverter_data(serial_number)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_inverter_data_timestamp ON inverter_data(timestamp DESC)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_port_data_serial ON port_data(serial_number)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_port_data_timestamp ON port_data(timestamp DESC)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_port_data_serial_port ON port_data(serial_number, port_number)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_metrics_timestamp ON system_metrics(timestamp DESC)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_metrics_name ON system_metrics(metric_name)')
+            for table_name in table_order:
+                if table_name in schema_sql:
+                    cursor.execute(schema_sql[table_name])
+                    logger.debug(f"Created/verified table: {table_name}")
             
             conn.commit()
             logger.info("Database schema created successfully")
@@ -208,12 +134,7 @@ class PersistenceManager:
             cursor = conn.cursor()
             
             # Update or insert inverter record
-            cursor.execute('''
-                INSERT INTO inverters (serial_number, dtu_name, first_seen, last_seen)
-                VALUES (%s, %s, NOW(), NOW())
-                ON CONFLICT (serial_number) 
-                DO UPDATE SET last_seen = NOW(), dtu_name = EXCLUDED.dtu_name
-            ''', (serial_number, dtu_name))
+            cursor.execute(self.adapter.upsert_inverter(), (serial_number, dtu_name))
             
             # Insert inverter data
             cursor.execute('''
@@ -261,12 +182,7 @@ class PersistenceManager:
             cursor = conn.cursor()
             
             # Ensure inverter exists (create if needed)
-            cursor.execute('''
-                INSERT INTO inverters (serial_number, first_seen, last_seen)
-                VALUES (%s, NOW(), NOW())
-                ON CONFLICT (serial_number) 
-                DO UPDATE SET last_seen = NOW()
-            ''', (serial_number,))
+            cursor.execute(self.adapter.upsert_inverter(), (serial_number, None))
             
             # Insert port data
             cursor.execute('''
@@ -315,23 +231,12 @@ class PersistenceManager:
             cursor = conn.cursor()
             
             # Ensure inverter exists (create if needed)
-            cursor.execute('''
-                INSERT INTO inverters (serial_number, first_seen, last_seen)
-                VALUES (%s, NOW(), NOW())
-                ON CONFLICT (serial_number) 
-                DO UPDATE SET last_seen = NOW()
-            ''', (serial_number,))
+            cursor.execute(self.adapter.upsert_inverter(), (serial_number, None))
             
-            cursor.execute('''
-                INSERT INTO production_cache 
-                (serial_number, port_number, today_production, total_production, last_updated)
-                VALUES (%s, %s, %s, %s, NOW())
-                ON CONFLICT (serial_number, port_number) 
-                DO UPDATE SET 
-                    today_production = EXCLUDED.today_production,
-                    total_production = EXCLUDED.total_production,
-                    last_updated = NOW()
-            ''', (serial_number, port_number, today_production, total_production))
+            cursor.execute(
+                self.adapter.upsert_production_cache(),
+                (serial_number, port_number, today_production, total_production)
+            )
             
             conn.commit()
             logger.debug(f"Saved production cache for {serial_number} port {port_number}")
@@ -356,7 +261,7 @@ class PersistenceManager:
         conn = None
         try:
             conn = self._get_connection()
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = self.adapter.get_cursor(conn, dict_cursor=True)
             
             cursor.execute('SELECT * FROM production_cache')
             
@@ -414,7 +319,7 @@ class PersistenceManager:
         conn = None
         try:
             conn = self._get_connection()
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = self.adapter.get_cursor(conn, dict_cursor=True)
             
             if serial_number:
                 cursor.execute('''
@@ -457,7 +362,7 @@ class PersistenceManager:
         conn = None
         try:
             conn = self._get_connection()
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = self.adapter.get_cursor(conn, dict_cursor=True)
             
             if serial_number and port_number is not None:
                 cursor.execute('''
@@ -501,7 +406,7 @@ class PersistenceManager:
         conn = None
         try:
             conn = self._get_connection()
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = self.adapter.get_cursor(conn, dict_cursor=True)
             
             cursor.execute('SELECT * FROM inverters ORDER BY serial_number')
             
@@ -570,12 +475,10 @@ class PersistenceManager:
             conn = self._get_connection()
             cursor = conn.cursor()
             
-            cursor.execute('''
-                INSERT INTO config_cache (key, value, last_updated)
-                VALUES (%s, %s, NOW())
-                ON CONFLICT (key) 
-                DO UPDATE SET value = EXCLUDED.value, last_updated = NOW()
-            ''', (key, json.dumps(value, cls=DecimalEncoder)))
+            cursor.execute(
+                self.adapter.upsert_config(),
+                (key, json.dumps(value, cls=DecimalEncoder))
+            )
             
             conn.commit()
             
@@ -603,7 +506,7 @@ class PersistenceManager:
         conn = None
         try:
             conn = self._get_connection()
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = self.adapter.get_cursor(conn, dict_cursor=True)
             
             cursor.execute('SELECT value FROM config_cache WHERE key = %s', (key,))
             row = cursor.fetchone()
@@ -667,7 +570,7 @@ class PersistenceManager:
         conn = None
         try:
             conn = self._get_connection()
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cursor = self.adapter.get_cursor(conn, dict_cursor=True)
             
             if since:
                 cursor.execute('''
@@ -726,12 +629,15 @@ class PersistenceManager:
             cursor.execute('SELECT COUNT(*) FROM inverters')
             inverters_count = cursor.fetchone()[0]
             
-            # Get database size
-            cursor.execute("SELECT pg_database_size(current_database())")
-            db_size = cursor.fetchone()[0]
+            # Get database size (PostgreSQL only)
+            db_size = 0
+            size_sql = self.adapter.get_database_size_sql()
+            if size_sql:
+                cursor.execute(size_sql)
+                db_size = cursor.fetchone()[0]
             
             return {
-                'database_type': 'PostgreSQL',
+                'database_type': self.db_type.upper(),
                 'database_size_bytes': db_size,
                 'production_cache_entries': production_count,
                 'config_cache_entries': config_count,
@@ -753,7 +659,7 @@ class PersistenceManager:
         """Close database connection pool."""
         if self.connection_pool:
             try:
-                self.connection_pool.closeall()
+                self.adapter.close_pool(self.connection_pool)
                 logger.info("Database connection pool closed")
             except Exception as e:
                 logger.error(f"Error closing database connection pool: {e}")

@@ -178,6 +178,7 @@ def main():
     
     persistence_manager = PersistenceManager(
         enabled=persistence_config.enabled,
+        type=db_config.type,
         host=db_config.host,
         port=db_config.port,
         database=db_config.database,

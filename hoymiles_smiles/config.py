@@ -49,9 +49,16 @@ class DatabaseConfig(BaseModel):
     @classmethod
     def validate_type(cls, v: str) -> str:
         """Validate database type."""
-        if v.lower() not in ['postgres', 'postgresql']:
-            raise ValueError("Only PostgreSQL is supported")
-        return 'postgres'
+        valid_types = ['postgres', 'postgresql', 'mysql', 'mariadb']
+        v_lower = v.lower()
+        if v_lower not in valid_types:
+            raise ValueError(f"Database type must be one of {valid_types}")
+        # Normalize to standard names
+        if v_lower in ['postgresql']:
+            return 'postgres'
+        elif v_lower in ['mariadb']:
+            return 'mysql'
+        return v_lower
 
 
 class ModbusConfig(BaseModel):

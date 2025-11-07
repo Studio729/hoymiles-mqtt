@@ -75,20 +75,24 @@ class HoymilesSmilesCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         max_push_age = self.update_interval.total_seconds() * 2
         
         if self._push_data and time_since_push < max_push_age:
-            _LOGGER.debug(
-                "[Push Data] Using pushed data (age: %.1fs, max: %.1fs)",
-                time_since_push, max_push_age
+            _LOGGER.info(
+                "[Push Data] Using pushed data from bridge (age: %.1fs, max: %.1fs, inverters: %d)",
+                time_since_push, max_push_age, len(self._push_data.get("inverters", []))
             )
             return self._push_data
         
         # Fall back to polling if push data is stale or missing
         if self._push_data:
-            _LOGGER.info(
-                "[Fallback Poll] Push data is stale (%.1fs old), falling back to polling",
+            _LOGGER.warning(
+                "[Fallback Poll] Push data is stale (%.1fs old), falling back to polling. "
+                "Check if bridge WebSocket connection is working.",
                 time_since_push
             )
         else:
-            _LOGGER.debug("[Poll] No push data available, polling API")
+            _LOGGER.warning(
+                "[Poll] No push data available, polling API. "
+                "WebSocket push may not be configured or connected."
+            )
         
         _LOGGER.debug(
             "[API Call Start] Fetching data from %s:%s (session_active=%s, consecutive_failures=%d)",
@@ -285,9 +289,52 @@ class HoymilesSmilesCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self.data and "inverters" in self.data:
             return self.data["inverters"]
         return []
+    
+    def get_inverter_data(self, serial_number: str) -> dict[str, Any] | None:
+        """Get data for a specific inverter from cached coordinator data.
+        
+        This uses the pushed/cached data, not making API calls.
+        
+        Args:
+            serial_number: Inverter serial number
+            
+        Returns:
+            Inverter data dict or None if not found
+        """
+        inverters = self.get_inverters()
+        for inverter in inverters:
+            if inverter.get("serial_number") == serial_number:
+                return inverter
+        return None
+    
+    def get_port_data(self, serial_number: str, port_number: int) -> dict[str, Any] | None:
+        """Get data for a specific port from cached coordinator data.
+        
+        This uses the pushed/cached data, not making API calls.
+        
+        Args:
+            serial_number: Inverter serial number
+            port_number: Port number
+            
+        Returns:
+            Port data dict or None if not found
+        """
+        inverter = self.get_inverter_data(serial_number)
+        if not inverter:
+            return None
+        
+        ports = inverter.get("ports", [])
+        for port in ports:
+            if port.get("port_number") == port_number:
+                return port
+        return None
 
     async def get_inverter_latest_data(self, serial_number: str) -> dict[str, Any] | None:
-        """Get latest data for a specific inverter including port data."""
+        """Get latest data for a specific inverter including port data.
+        
+        DEPRECATED: This method makes API calls. Use get_inverter_data() instead for cached data.
+        This is only used during initial setup to discover port numbers.
+        """
         try:
             session = await self._get_session()
             endpoint = f"/api/inverters/{serial_number}"
@@ -321,29 +368,38 @@ class HoymilesSmilesCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         import time
         
-        _LOGGER.debug(
-            "[Push Update] Received push update with %d inverters",
-            len(data.get("inverters", []))
+        inverters = data.get("inverters", [])
+        total_ports = sum(len(inv.get("ports", [])) for inv in inverters)
+        
+        _LOGGER.info(
+            "[WebSocket Push] ✓ Received data from bridge: %d inverters, %d ports",
+            len(inverters), total_ports
         )
         
         # Store push data
         self._push_data = {
             "health": data.get("health", {}),
             "stats": data.get("stats", {}),
-            "inverters": data.get("inverters", []),
+            "inverters": inverters,
             "available": True,
         }
         self._last_push_update = time.time()
         
         # Reset consecutive failures on successful push
         if self._consecutive_failures > 0:
-            _LOGGER.info("Push update received, resetting failure count")
+            _LOGGER.info(
+                "[WebSocket Push] Connection restored after %d failures",
+                self._consecutive_failures
+            )
             self._consecutive_failures = 0
         
         # Update coordinator data and notify listeners
         self.async_set_updated_data(self._push_data)
         
-        _LOGGER.debug("[Push Update] Successfully processed push update")
+        _LOGGER.debug(
+            "[WebSocket Push] Successfully updated %d sensors", 
+            len(self._listeners)
+        )
 
     def get_ws_token(self) -> str:
         """Get WebSocket authentication token."""
@@ -392,27 +448,35 @@ class HoymilesSmilesCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "name": "Home Assistant",
             }
             
-            _LOGGER.debug("[WebSocket Registration] Sending to %s", url)
+            _LOGGER.info(
+                "[WebSocket Registration] Registering with bridge at %s:%s",
+                self.host, self.port
+            )
+            _LOGGER.debug("[WebSocket Registration] URL: %s", ws_url)
             
             async with session.post(url, json=payload) as response:
                 if response.status == 200:
                     _LOGGER.info(
-                        "Successfully registered WebSocket URL with bridge"
+                        "[WebSocket Registration] ✓ Successfully registered with bridge. "
+                        "Push updates are enabled."
                     )
                 elif response.status == 404:
-                    _LOGGER.warning(
-                        "Bridge does not support WebSocket registration endpoint. "
-                        "Push updates will not work, falling back to polling only."
+                    _LOGGER.error(
+                        "[WebSocket Registration] ✗ Bridge does not support WebSocket endpoint (/api/websocket/register). "
+                        "Push updates will NOT work - sensors will poll API instead. "
+                        "This may cause performance issues."
                     )
                 else:
-                    _LOGGER.warning(
-                        "Failed to register WebSocket with bridge (HTTP %d). "
-                        "Falling back to polling only.",
+                    _LOGGER.error(
+                        "[WebSocket Registration] ✗ Failed to register with bridge (HTTP %d). "
+                        "Push updates will NOT work - falling back to polling only.",
                         response.status
                     )
         except Exception as err:
-            _LOGGER.warning(
-                "Could not register WebSocket with bridge: %s. Falling back to polling only.",
+            _LOGGER.error(
+                "[WebSocket Registration] ✗ Could not register with bridge: %s. "
+                "Push updates will NOT work - falling back to polling only. "
+                "Check bridge connectivity.",
                 err
             )
 

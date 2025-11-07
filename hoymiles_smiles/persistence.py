@@ -514,6 +514,47 @@ class PersistenceManager:
             if conn:
                 self._return_connection(conn)
     
+    def get_all_inverters_with_data(self) -> List[Dict]:
+        """Get all inverters with their latest readings and port data.
+        
+        Returns:
+            List of enriched inverter records with latest data and ports
+        """
+        if not self.enabled or not self.connection_pool:
+            return []
+        
+        inverters = self.get_all_inverters()
+        enriched_inverters = []
+        
+        for inverter in inverters:
+            serial_number = inverter.get('serial_number')
+            if not serial_number:
+                continue
+            
+            # Get latest inverter reading
+            latest_data = self.get_latest_inverter_data(serial_number=serial_number, limit=1)
+            if latest_data:
+                inverter_reading = latest_data[0]
+                # Merge inverter metadata with latest reading
+                enriched = {**inverter, **inverter_reading}
+            else:
+                enriched = dict(inverter)
+            
+            # Get latest port data for all ports
+            port_data = self.get_latest_port_data(serial_number=serial_number, limit=10)
+            
+            # Group port data by port number and get the latest for each port
+            ports_by_number = {}
+            for port in port_data:
+                port_num = port.get('port_number')
+                if port_num not in ports_by_number:
+                    ports_by_number[port_num] = port
+            
+            enriched['ports'] = list(ports_by_number.values())
+            enriched_inverters.append(enriched)
+        
+        return enriched_inverters
+    
     def save_config(self, key: str, value: Any) -> None:
         """Save configuration value.
         

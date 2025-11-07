@@ -75,53 +75,59 @@ class WebSocketClient:
                     )
                     await asyncio.sleep(delay)
                 
-                logger.info("Connecting to WebSocket: %s (%s)", name, ws_url)
+                logger.info("[WebSocket] Connecting to %s (%s)", name, ws_url)
                 
                 async with aiohttp.ClientSession() as session:
-                    async with session.ws_connect(
-                        ws_url,
-                        heartbeat=30,
-                        timeout=aiohttp.ClientTimeout(total=60),
-                    ) as ws:
-                        connection["ws"] = ws
-                        connection["connected"] = True
-                        connection["reconnect_attempts"] = 0
-                        
-                        logger.info("WebSocket connected: %s", name)
-                        
-                        # Send initial ping
-                        await ws.send_json({"type": "ping"})
-                        
-                        # Keep connection alive and handle messages
-                        async for msg in ws:
-                            if msg.type == aiohttp.WSMsgType.TEXT:
-                                await self._handle_message(connection, msg.data)
-                            elif msg.type == aiohttp.WSMsgType.ERROR:
-                                logger.error(
-                                    "WebSocket error for %s: %s",
-                                    name, ws.exception()
-                                )
-                                break
-                            elif msg.type in (
-                                aiohttp.WSMsgType.CLOSE,
-                                aiohttp.WSMsgType.CLOSED,
-                                aiohttp.WSMsgType.CLOSING,
-                            ):
-                                logger.info("WebSocket closed: %s", name)
-                                break
-                        
+                    try:
+                        async with session.ws_connect(
+                            ws_url,
+                            heartbeat=30,
+                            timeout=aiohttp.ClientTimeout(total=10),
+                        ) as ws:
+                            connection["ws"] = ws
+                            connection["connected"] = True
+                            connection["reconnect_attempts"] = 0
+                            
+                            logger.info("[WebSocket] ✓ Connected to: %s", name)
+                            
+                            # Send initial ping
+                            logger.debug("[WebSocket] Sending initial ping to %s", name)
+                            await ws.send_json({"type": "ping"})
+                            
+                            # Keep connection alive and handle messages
+                            logger.debug("[WebSocket] Listening for messages from %s", name)
+                            async for msg in ws:
+                                if msg.type == aiohttp.WSMsgType.TEXT:
+                                    logger.debug("[WebSocket] Received message from %s: %d bytes", name, len(msg.data))
+                                    await self._handle_message(connection, msg.data)
+                                elif msg.type == aiohttp.WSMsgType.ERROR:
+                                    logger.error(
+                                        "[WebSocket] Error for %s: %s",
+                                        name, ws.exception()
+                                    )
+                                    break
+                                elif msg.type in (
+                                    aiohttp.WSMsgType.CLOSE,
+                                    aiohttp.WSMsgType.CLOSED,
+                                    aiohttp.WSMsgType.CLOSING,
+                                ):
+                                    logger.info("[WebSocket] Connection closed: %s", name)
+                                    break
+                            
+                            connection["connected"] = False
+                            connection["ws"] = None
+                    
+                    except (aiohttp.ClientError, asyncio.TimeoutError) as err:
                         connection["connected"] = False
                         connection["ws"] = None
+                        connection["reconnect_attempts"] += 1
+                        logger.warning(
+                            "[WebSocket] Connection failed for %s: %s (attempt %d)",
+                            name, err, connection["reconnect_attempts"]
+                        )
+                        # Raise to trigger reconnect
+                        raise
                         
-            except aiohttp.ClientError as err:
-                connection["connected"] = False
-                connection["ws"] = None
-                connection["reconnect_attempts"] += 1
-                logger.error(
-                    "WebSocket connection error for %s: %s",
-                    name, err
-                )
-            
             except asyncio.CancelledError:
                 logger.info("WebSocket connection task cancelled for %s", name)
                 break
@@ -137,7 +143,7 @@ class WebSocketClient:
             
             # If we get here, connection was lost
             if self.enabled:
-                logger.warning("WebSocket disconnected from %s, will reconnect", name)
+                logger.warning("[WebSocket] Disconnected from %s, will reconnect", name)
     
     async def _handle_message(self, connection: Dict[str, Any], message: str) -> None:
         """Handle incoming WebSocket message.
@@ -203,14 +209,17 @@ class WebSocketClient:
                 "data": data,
             }
             
-            logger.debug(
-                "Sending WebSocket update to %s: %d inverters",
-                name, len(data.get("inverters", []))
+            inverter_count = len(data.get("inverters", []))
+            port_count = sum(len(inv.get("ports", [])) for inv in data.get("inverters", []))
+            
+            logger.info(
+                "[WebSocket] Sending update to %s: %d inverters, %d ports",
+                name, inverter_count, port_count
             )
             
             await ws.send_json(message)
             
-            logger.debug("Successfully sent update to %s", name)
+            logger.info("[WebSocket] ✓ Successfully sent update to %s", name)
         
         except Exception as err:
             logger.error(

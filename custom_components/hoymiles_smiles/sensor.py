@@ -385,8 +385,14 @@ class InverterSensor(CoordinatorEntity[HoymilesSmilesCoordinator], SensorEntity)
         """Handle entity added to hass."""
         await super().async_added_to_hass()
         
-        # Fetch initial detailed data for this inverter
-        self._latest_data = await self.coordinator.get_inverter_latest_data(self._serial_number)
+        # Get cached data from coordinator (no API call)
+        self._latest_data = self.coordinator.get_inverter_data(self._serial_number)
+        
+        _LOGGER.debug(
+            "[Sensor Init] InverterSensor %s/%s using cached data: %s",
+            self._serial_number, self._sensor_key, 
+            "available" if self._latest_data else "no data yet"
+        )
         
         # Schedule initial state write
         async def write_initial_state():
@@ -408,8 +414,8 @@ class InverterSensor(CoordinatorEntity[HoymilesSmilesCoordinator], SensorEntity)
     async def async_update(self) -> None:
         """Update the entity."""
         await super().async_update()
-        # Fetch latest detailed data for this inverter
-        self._latest_data = await self.coordinator.get_inverter_latest_data(self._serial_number)
+        # Get cached data from coordinator (no API call)
+        self._latest_data = self.coordinator.get_inverter_data(self._serial_number)
 
     @property
     def native_value(self) -> StateType:
@@ -537,16 +543,20 @@ class PortSensor(CoordinatorEntity[HoymilesSmilesCoordinator], SensorEntity):
         }
         
         # Cache for latest data
-        self._latest_data: dict[str, Any] | None = None
         self._port_data: dict[str, Any] | None = None
 
     async def async_added_to_hass(self) -> None:
         """Handle entity added to hass."""
         await super().async_added_to_hass()
         
-        # Fetch initial detailed data for this inverter
-        self._latest_data = await self.coordinator.get_inverter_latest_data(self._serial_number)
-        self._extract_port_data()
+        # Get cached data from coordinator (no API call)
+        self._port_data = self.coordinator.get_port_data(self._serial_number, self._port_number)
+        
+        _LOGGER.debug(
+            "[Sensor Init] PortSensor %s/port%d/%s using cached data: %s",
+            self._serial_number, self._port_number, self._sensor_key,
+            "available" if self._port_data else "no data yet"
+        )
         
         # Schedule initial state write
         async def write_initial_state():
@@ -568,23 +578,8 @@ class PortSensor(CoordinatorEntity[HoymilesSmilesCoordinator], SensorEntity):
     async def async_update(self) -> None:
         """Update the entity."""
         await super().async_update()
-        # Fetch latest detailed data for this inverter
-        self._latest_data = await self.coordinator.get_inverter_latest_data(self._serial_number)
-        self._extract_port_data()
-
-    def _extract_port_data(self) -> None:
-        """Extract data for this specific port."""
-        if not self._latest_data:
-            self._port_data = None
-            return
-        
-        ports = self._latest_data.get("ports", [])
-        for port in ports:
-            if port.get("port_number") == self._port_number:
-                self._port_data = port
-                return
-        
-        self._port_data = None
+        # Get cached data from coordinator (no API call)
+        self._port_data = self.coordinator.get_port_data(self._serial_number, self._port_number)
 
     @property
     def native_value(self) -> StateType:
@@ -626,10 +621,8 @@ class PortSensor(CoordinatorEntity[HoymilesSmilesCoordinator], SensorEntity):
             "serial_number": self._serial_number,
             "port_number": self._port_number,
             "dtu_name": self._inverter_info.get("dtu_name"),
+            "last_seen": self._port_data.get("timestamp"),
         }
-        
-        if self._latest_data:
-            attributes["last_seen"] = self._latest_data.get("timestamp")
         
         return attributes
 
@@ -699,12 +692,20 @@ class InverterAggregateSensor(CoordinatorEntity[HoymilesSmilesCoordinator], Sens
     async def async_added_to_hass(self) -> None:
         """Handle entity added to hass."""
         await super().async_added_to_hass()
-        self._latest_data = await self.coordinator.get_inverter_latest_data(self._serial_number)
+        # Get cached data from coordinator (no API call)
+        self._latest_data = self.coordinator.get_inverter_data(self._serial_number)
+        
+        _LOGGER.debug(
+            "[Sensor Init] InverterAggregateSensor %s/%s using cached data: %s",
+            self._serial_number, self._sensor_key,
+            "available" if self._latest_data else "no data yet"
+        )
 
     async def async_update(self) -> None:
         """Update the entity."""
         await super().async_update()
-        self._latest_data = await self.coordinator.get_inverter_latest_data(self._serial_number)
+        # Get cached data from coordinator (no API call)
+        self._latest_data = self.coordinator.get_inverter_data(self._serial_number)
 
     @property
     def native_value(self) -> StateType:

@@ -54,13 +54,16 @@ class HoymilesWebSocketView(HomeAssistantView):
                 break
 
         _LOGGER.info(
-            "WebSocket connection established from %s for entry %s",
+            "[WebSocket Server] ✓ Connection established from bridge (%s) for entry %s",
             request.remote,
             coordinator_entry_id,
         )
 
         # Store WebSocket connection in coordinator
         coordinator.set_websocket(ws)
+        
+        # Send initial ack
+        await ws.send_json({"type": "connected", "status": "ready"})
 
         try:
             # Handle messages
@@ -120,27 +123,48 @@ class HoymilesWebSocketView(HomeAssistantView):
             data = json.loads(message)
             message_type = data.get("type")
 
+            _LOGGER.debug(
+                "[WebSocket Server] Received message type: %s (size: %d bytes)",
+                message_type, len(message)
+            )
+
             if message_type == "update":
                 # Data update from bridge
                 payload = data.get("data", {})
-                _LOGGER.debug(
-                    "Received WebSocket update with %d inverters",
-                    len(payload.get("inverters", [])),
+                inverter_count = len(payload.get("inverters", []))
+                
+                _LOGGER.info(
+                    "[WebSocket Server] Processing update: %d inverters, %d ports",
+                    inverter_count,
+                    sum(len(inv.get("ports", [])) for inv in payload.get("inverters", []))
                 )
+                
                 await coordinator.async_handle_push_update(payload)
+                
+                _LOGGER.info("[WebSocket Server] ✓ Update processed successfully")
 
             elif message_type == "ping":
-                # Respond to ping
-                if coordinator._ws:
-                    await coordinator._ws.send_json({"type": "pong"})
+                # Respond to ping (coordinator stores the ws connection)
+                _LOGGER.debug("[WebSocket Server] Ping received, sending pong")
+                # The WebSocket response will be handled by the bridge's ping handler
 
             else:
-                _LOGGER.warning("Unknown WebSocket message type: %s", message_type)
+                _LOGGER.warning(
+                    "[WebSocket Server] Unknown message type: %s",
+                    message_type
+                )
 
         except json.JSONDecodeError as err:
-            _LOGGER.error("Invalid JSON in WebSocket message: %s", err)
+            _LOGGER.error(
+                "[WebSocket Server] Invalid JSON in message: %s",
+                err
+            )
+            _LOGGER.debug("[WebSocket Server] Raw message: %s", message[:500])
         except Exception as err:
-            _LOGGER.exception("Error handling WebSocket message: %s", err)
+            _LOGGER.exception(
+                "[WebSocket Server] Error handling message: %s",
+                err
+            )
 
 
 async def async_setup_websocket(hass: HomeAssistant) -> None:
@@ -152,5 +176,8 @@ async def async_setup_websocket(hass: HomeAssistant) -> None:
     view = HoymilesWebSocketView(hass)
     hass.http.register_view(view)
     
-    _LOGGER.info("WebSocket server registered at %s", WEBSOCKET_PATH)
+    _LOGGER.info(
+        "[WebSocket Server] Server registered at %s - Ready to accept bridge connections",
+        WEBSOCKET_PATH
+    )
 

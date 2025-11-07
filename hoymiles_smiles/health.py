@@ -209,6 +209,10 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         """Handle GET requests."""
         try:
+            # Log API requests (but not health checks to avoid spam)
+            if self.path.startswith('/api/'):
+                logger.info(f"[API Request] GET {self.path} from {self.client_address[0]}")
+            
             if self.path == '/health':
                 self._handle_health()
             elif self.path == '/ready':
@@ -292,21 +296,20 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
             parts = self.path.split('/')
             
             if self.path == '/api/inverters':
-                # Get all inverters
-                inverters = self.persistence_manager.get_all_inverters()
+                # Get all inverters with enriched data (latest readings + ports)
+                inverters = self.persistence_manager.get_all_inverters_with_data()
                 self._send_json_response(inverters)
             
             elif self.path.startswith('/api/inverters/') and len(parts) >= 4:
                 serial_number = parts[3]
                 
                 if len(parts) == 4:
-                    # Get latest data for specific inverter
-                    inverter_data = self.persistence_manager.get_latest_inverter_data(
-                        serial_number=serial_number, 
-                        limit=1
-                    )
-                    if inverter_data:
-                        self._send_json_response(inverter_data[0])
+                    # Get latest data for specific inverter with enriched data
+                    all_inverters = self.persistence_manager.get_all_inverters_with_data()
+                    inverter = next((inv for inv in all_inverters if inv.get('serial_number') == serial_number), None)
+                    
+                    if inverter:
+                        self._send_json_response(inverter)
                     else:
                         self.send_error(404, "Inverter not found")
                 

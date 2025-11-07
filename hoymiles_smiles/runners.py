@@ -292,10 +292,15 @@ class MultiDtuCoordinator:
     def _send_websocket_update(self) -> None:
         """Send update to registered WebSockets."""
         try:
-            # Gather data to send
-            inverters = self.persistence.get_all_inverters()
+            # Gather data to send - use enriched data with latest readings and ports
+            inverters = self.persistence.get_all_inverters_with_data()
             stats = self.persistence.get_statistics()
             health_status = self.health_metrics.get_health_status()
+            
+            logger.debug(
+                f"Preparing WebSocket push: {len(inverters)} inverters, "
+                f"{sum(len(inv.get('ports', [])) for inv in inverters)} total ports"
+            )
             
             # Create payload
             payload = {
@@ -313,6 +318,7 @@ class MultiDtuCoordinator:
                 asyncio.set_event_loop(loop)
                 try:
                     loop.run_until_complete(self.websocket_client.send_update(payload))
+                    logger.info(f"Successfully pushed data via WebSocket to {len(self.websocket_client.connections)} connections")
                 except Exception as e:
                     logger.error(f"Error sending WebSocket update: {e}")
                 finally:

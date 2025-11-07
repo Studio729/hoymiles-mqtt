@@ -4,7 +4,7 @@ import json
 import logging
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Any, Dict, Optional
 
@@ -175,12 +175,12 @@ class HealthMetrics:
             
             dtu_statuses[dtu_name] = {
                 'status': dtu_status.get(dtu_name, 'unknown'),
-                'last_successful_query': datetime.fromtimestamp(last_success).isoformat() if last_success else None,
+                'last_successful_query': datetime.fromtimestamp(last_success, tz=timezone.utc).isoformat() if last_success else None,
                 'seconds_since_last_success': int(current_time - last_success) if last_success else None,
                 'query_count': query_count.get(dtu_name, 0),
                 'error_count': error_count.get(dtu_name, 0),
                 'last_error': error_msg,
-                'last_error_time': datetime.fromtimestamp(error_time).isoformat() if error_time else None,
+                'last_error_time': datetime.fromtimestamp(error_time, tz=timezone.utc).isoformat() if error_time else None,
             }
         
         # Return status built from copied data

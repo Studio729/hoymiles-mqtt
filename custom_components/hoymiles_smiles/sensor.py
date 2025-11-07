@@ -841,10 +841,14 @@ class DtuSensor(CoordinatorEntity[HoymilesSmilesCoordinator], SensorEntity):
             if self._sensor_key == "last_query_time":
                 last_query = dtu_data.get("last_successful_query")
                 if last_query:
-                    from datetime import datetime
+                    from datetime import datetime, timezone
                     try:
-                        # Parse ISO format timestamp
-                        return datetime.fromisoformat(last_query.replace('Z', '+00:00'))
+                        # Parse ISO format timestamp and ensure it has timezone
+                        dt = datetime.fromisoformat(last_query.replace('Z', '+00:00'))
+                        # If the datetime is naive (no timezone), assume UTC
+                        if dt.tzinfo is None:
+                            dt = dt.replace(tzinfo=timezone.utc)
+                        return dt
                     except Exception:
                         return None
                 return None

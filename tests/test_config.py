@@ -6,7 +6,9 @@ from pydantic import ValidationError
 
 from hoymiles_smiles.config import (
     AppConfig,
+    DatabaseConfig,
     DtuConfig,
+    InfluxDBConfig,
     ModbusConfig,
     TimingConfig,
 )
@@ -91,4 +93,77 @@ def test_app_config_missing_dtu():
     """Test app configuration without DTU."""
     with pytest.raises(ValidationError):
         AppConfig()
+
+
+def test_influxdb_config_valid():
+    """Test valid InfluxDB configuration."""
+    config = InfluxDBConfig(
+        enabled=True,
+        host="https://influxdb3.example.com",
+        token="test_token",
+        database="hoymiles",
+    )
+    assert config.enabled is True
+    assert config.host == "https://influxdb3.example.com"
+    assert config.token == "test_token"
+    assert config.database == "hoymiles"
+
+
+def test_influxdb_config_invalid_host():
+    """Test InfluxDB configuration with invalid host."""
+    with pytest.raises(ValidationError):
+        InfluxDBConfig(
+            enabled=True,
+            host="invalid-host",  # Missing http:// or https://
+            token="test_token",
+        )
+
+
+def test_influxdb_config_disabled():
+    """Test disabled InfluxDB configuration."""
+    config = InfluxDBConfig(enabled=False)
+    assert config.enabled is False
+
+
+def test_database_config_postgres():
+    """Test PostgreSQL database configuration."""
+    config = DatabaseConfig(
+        type="postgres",
+        host="localhost",
+        port=5432,
+        database="hoymiles",
+        user="hoymiles",
+        password="password",
+    )
+    assert config.type == "postgres"
+    assert config.host == "localhost"
+    assert config.port == 5432
+
+
+def test_database_config_mysql():
+    """Test MySQL database configuration."""
+    config = DatabaseConfig(
+        type="mysql",
+        host="192.168.1.50",
+        port=3306,
+        database="hoymiles",
+        user="hoymiles",
+        password="password",
+    )
+    assert config.type == "mysql"
+    assert config.host == "192.168.1.50"
+    assert config.port == 3306
+
+
+def test_database_config_mariadb_normalized():
+    """Test MariaDB configuration normalized to mysql."""
+    config = DatabaseConfig(
+        type="mariadb",
+        host="localhost",
+        port=3306,
+        database="hoymiles",
+        user="hoymiles",
+        password="password",
+    )
+    assert config.type == "mysql"  # Should be normalized to mysql
 

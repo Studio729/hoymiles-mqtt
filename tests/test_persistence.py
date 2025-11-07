@@ -17,12 +17,23 @@ def test_persistence_initialization_postgres():
     """Test persistence manager initialization with PostgreSQL."""
     # Mock the adapter to avoid needing real database
     with patch('hoymiles_smiles.persistence.DatabaseAdapter') as mock_adapter:
-        mock_adapter.return_value.create_pool = MagicMock()
+        # Create mock connection and cursor
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+        
+        # Setup adapter mocks
+        mock_adapter.return_value.create_pool = MagicMock(return_value=MagicMock())
         mock_adapter.return_value.get_schema_sql = MagicMock(return_value={
             'inverters': 'CREATE TABLE inverters ...',
+            'inverter_data': 'CREATE TABLE inverter_data ...',
+            'port_data': 'CREATE TABLE port_data ...',
+            'production_cache': 'CREATE TABLE production_cache ...',
+            'config_cache': 'CREATE TABLE config_cache ...',
+            'system_metrics': 'CREATE TABLE system_metrics ...',
         })
-        mock_adapter.return_value.get_connection = MagicMock()
-        mock_adapter.return_value.get_cursor = MagicMock()
+        mock_adapter.return_value.get_connection = MagicMock(return_value=mock_conn)
+        mock_adapter.return_value.get_cursor = MagicMock(return_value=mock_cursor)
         mock_adapter.return_value.return_connection = MagicMock()
         
         pm = PersistenceManager(
@@ -43,12 +54,23 @@ def test_persistence_initialization_mysql():
     """Test persistence manager initialization with MySQL."""
     # Mock the adapter to avoid needing real database
     with patch('hoymiles_smiles.persistence.DatabaseAdapter') as mock_adapter:
-        mock_adapter.return_value.create_pool = MagicMock()
+        # Create mock connection and cursor
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+        
+        # Setup adapter mocks
+        mock_adapter.return_value.create_pool = MagicMock(return_value=MagicMock())
         mock_adapter.return_value.get_schema_sql = MagicMock(return_value={
             'inverters': 'CREATE TABLE inverters ...',
+            'inverter_data': 'CREATE TABLE inverter_data ...',
+            'port_data': 'CREATE TABLE port_data ...',
+            'production_cache': 'CREATE TABLE production_cache ...',
+            'config_cache': 'CREATE TABLE config_cache ...',
+            'system_metrics': 'CREATE TABLE system_metrics ...',
         })
-        mock_adapter.return_value.get_connection = MagicMock()
-        mock_adapter.return_value.get_cursor = MagicMock()
+        mock_adapter.return_value.get_connection = MagicMock(return_value=mock_conn)
+        mock_adapter.return_value.get_cursor = MagicMock(return_value=mock_cursor)
         mock_adapter.return_value.return_connection = MagicMock()
         
         pm = PersistenceManager(

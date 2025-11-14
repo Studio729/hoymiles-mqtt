@@ -22,6 +22,52 @@ class DecimalEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
+def normalize_db_value(value: Any) -> Any:
+    """Normalize database value to JSON-serializable type.
+    
+    Converts:
+    - Decimal -> float
+    - datetime -> ISO format string
+    - None -> None (preserved)
+    
+    Args:
+        value: Value from database
+        
+    Returns:
+        Normalized value
+    """
+    if value is None:
+        return None
+    if isinstance(value, Decimal):
+        return float(value)
+    if isinstance(value, datetime):
+        # Convert to ISO format string with timezone
+        if value.tzinfo is None:
+            # Naive datetime - assume UTC
+            from datetime import timezone
+            value = value.replace(tzinfo=timezone.utc)
+        return value.isoformat()
+    if isinstance(value, (int, float, str, bool)):
+        return value
+    # For other types, try to convert to string
+    return str(value)
+
+
+def normalize_db_record(record: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize a database record to JSON-serializable format.
+    
+    Args:
+        record: Database record dictionary
+        
+    Returns:
+        Normalized record dictionary
+    """
+    normalized = {}
+    for key, value in record.items():
+        normalized[key] = normalize_db_value(value)
+    return normalized
+
+
 class PersistenceManager:
     """Manages persistent storage of solar production data in PostgreSQL or MySQL/MariaDB."""
 
@@ -424,6 +470,7 @@ class PersistenceManager:
         
         Returns:
             List of enriched inverter records with latest data and ports
+            All values are normalized to JSON-serializable types (float, str, etc.)
         """
         if not self.enabled or not self.connection_pool:
             return []
@@ -440,20 +487,21 @@ class PersistenceManager:
             latest_data = self.get_latest_inverter_data(serial_number=serial_number, limit=1)
             if latest_data:
                 inverter_reading = latest_data[0]
-                # Merge inverter metadata with latest reading
-                enriched = {**inverter, **inverter_reading}
+                # Normalize and merge inverter metadata with latest reading
+                enriched = normalize_db_record({**inverter, **inverter_reading})
             else:
-                enriched = dict(inverter)
+                enriched = normalize_db_record(dict(inverter))
             
             # Get latest port data for all ports
             port_data = self.get_latest_port_data(serial_number=serial_number, limit=10)
             
             # Group port data by port number and get the latest for each port
+            # Normalize each port record
             ports_by_number = {}
             for port in port_data:
                 port_num = port.get('port_number')
                 if port_num not in ports_by_number:
-                    ports_by_number[port_num] = port
+                    ports_by_number[port_num] = normalize_db_record(port)
             
             enriched['ports'] = list(ports_by_number.values())
             enriched_inverters.append(enriched)

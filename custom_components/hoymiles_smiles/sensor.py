@@ -426,15 +426,15 @@ class InverterSensor(CoordinatorEntity[HoymilesSmilesCoordinator], SensorEntity)
         # Map sensor keys to data fields (inverter-level only)
         if self._sensor_key == "grid_voltage":
             value = self._latest_data.get("grid_voltage")
-            return round(value, 2) if value else None
+            return round(value, 2) if value is not None else None
         
         elif self._sensor_key == "grid_frequency":
             value = self._latest_data.get("grid_frequency")
-            return round(value, 2) if value else None
+            return round(value, 2) if value is not None else None
         
         elif self._sensor_key == "temperature":
             value = self._latest_data.get("temperature")
-            return round(value, 1) if value else None
+            return round(value, 1) if value is not None else None
         
         elif self._sensor_key == "operating_status":
             code = self._latest_data.get("operating_status")
@@ -590,24 +590,24 @@ class PortSensor(CoordinatorEntity[HoymilesSmilesCoordinator], SensorEntity):
         # Map sensor keys to port data fields
         if self._sensor_key == "pv_voltage":
             value = self._port_data.get("pv_voltage")
-            return round(value, 2) if value else None
+            return round(value, 2) if value is not None else None
         
         elif self._sensor_key == "pv_current":
             value = self._port_data.get("pv_current")
-            return round(value, 3) if value else None
+            return round(value, 3) if value is not None else None
         
         elif self._sensor_key == "pv_power":
             value = self._port_data.get("pv_power")
-            return round(value, 2) if value else None
+            return round(value, 2) if value is not None else None
         
         elif self._sensor_key == "today_production":
             value = self._port_data.get("today_production")
-            return int(value) if value else 0
+            return int(value) if value is not None else 0
         
         elif self._sensor_key == "total_production":
             value = self._port_data.get("total_production")
             # Convert Wh to kWh
-            return round(value / 1000, 2) if value else 0
+            return round(value / 1000, 2) if value is not None else 0
         
         return None
 
